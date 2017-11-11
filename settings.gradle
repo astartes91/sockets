@@ -1,0 +1,4 @@
+rootProject.name = 'tradeshiftassignment'
+include 'server'
+include 'client'
+
