@@ -41,10 +41,10 @@ public class ServerApplication {
                 String serviceName = (String) objectInputStream.readObject();
                 String methodName = (String) objectInputStream.readObject();
 
-                Integer argumentCount = (Integer) objectInputStream.readObject();
                 List arguments = new ArrayList();
-                for (Integer i = 0; i < argumentCount; i++) {
-                    arguments.add(objectInputStream.readObject());
+                Object object = null;
+                while ((object = objectInputStream.readObject()) != null){
+                    arguments.add(object);
                 }
                 log.info("Command received: {}.{}({})", serviceName, methodName, arguments);
 

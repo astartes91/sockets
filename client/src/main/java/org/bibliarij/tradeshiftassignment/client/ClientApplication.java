@@ -34,10 +34,10 @@ public class ClientApplication {
                     objectOutputStream.writeObject(serviceName);
                     objectOutputStream.writeObject(methodName);
 
-                    objectOutputStream.writeObject(arguments.length);
                     for (Object argument : arguments) {
                         objectOutputStream.writeObject(argument);
                     }
+                    objectOutputStream.writeObject(null);
 
                     objectOutputStream.flush();
                     log.info("Command sent: {}.{}({})", serviceName, methodName, arguments);
