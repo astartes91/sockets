@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -12,19 +13,22 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ClientApplication {
 
+    private static final String HOST = "localhost";
+    private static final int PORT = 8080;
+
     private static final Logger log = LogManager.getLogger(ClientApplication.class);
     private static AtomicInteger atomicInteger = new AtomicInteger(0);
 
     public static void main(String[] args) {
 
         new Thread(() -> sendRequest("IntegerService", "add", 1, 2)).start();
+        new Thread(() -> sendRequest("DoNothingService", "doNothing")).start();
+        new Thread(() -> sendRequest("DoNothingServic", "doNothing")).start();
     }
 
-    private static void sendRequest(String serviceName, String methodName, Object... arguments) {
-        int port = 8080;
-        String host = "localhost";
-        try (Socket socket = new Socket(host, port)){
-            log.info("Connected to {}:{}", host, port);
+    private static Object sendRequest(String serviceName, String methodName, Object... arguments) {
+        try (Socket socket = new Socket(HOST, PORT)){
+            log.info("Connected to {}:{}", HOST, PORT);
             try (OutputStream outputStream = socket.getOutputStream()) {
                 try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)){
                     objectOutputStream.writeObject(atomicInteger.getAndIncrement());
@@ -37,21 +41,32 @@ public class ClientApplication {
                     objectOutputStream.writeObject(null);
 
                     objectOutputStream.flush();
-                    log.info("Command sent: {}.{}({})", serviceName, methodName, arguments);
+                    String command = String.format("%s.%s(%s)", serviceName, methodName, Arrays.asList(arguments));
+                    log.info("Command sent: {})", command);
 
                     try (InputStream inputStream = socket.getInputStream()){
                         try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)){
                             Integer number = (Integer) objectInputStream.readObject();
                             Object result = objectInputStream.readObject();
-                            log.info("Result: {}", result);
+
+                            if (result instanceof Exception){
+                                String message = String.format("Exception for command %s: ", command);
+                                log.error(message, (Exception)result);
+                            } else {
+                                log.info("Result {} for command {}", result, command);
+                            }
+
+                            return result;
                         } catch (ClassNotFoundException e) {
-                            log.error(e);
+                            log.error("Exception: ", e);
                         }
                     }
                 }
             }
         } catch (IOException e) {
-            log.error(e);
+            log.error("Exception: ", e);
         }
+
+        return null;
     }
 }

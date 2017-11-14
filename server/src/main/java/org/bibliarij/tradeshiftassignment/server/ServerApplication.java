@@ -5,7 +5,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
@@ -20,10 +19,14 @@ public class ServerApplication {
 
     public static void main(String[] args) throws IOException {
 
-        new ServerApplication().startServer();
+        int port = 8080;
+        if(args.length != 0){
+            port = Integer.valueOf(args[0]);
+        }
+        new ServerApplication().startServer(port);
     }
 
-    private void startServer() throws IOException {
+    private void startServer(int port) throws IOException {
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream("server.properties");
         Properties properties = new Properties();
         properties.load(inputStream);
@@ -31,16 +34,11 @@ public class ServerApplication {
         properties.forEach((o, o2) -> {
             try {
                 services.put((String) o, Class.forName((String) o2).newInstance());
-            } catch (ClassNotFoundException e) {
-                log.error(e);
-            } catch (IllegalAccessException e) {
-                log.error(e);
-            } catch (InstantiationException e) {
-                log.error(e);
+            } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+                log.error("Exception: ", e);
             }
         });
 
-        int port = 8080;
         try (ServerSocket serverSocket = new ServerSocket(port)){
             log.info("Server started on port {}", port);
 
@@ -48,8 +46,6 @@ public class ServerApplication {
                 Socket clientSocket = serverSocket.accept();
                 new Thread(() -> processRequest(clientSocket)).start();
             }
-        } catch (IOException e) {
-            log.error(e);
         }
     }
 
@@ -69,40 +65,43 @@ public class ServerApplication {
                 while ((object = objectInputStream.readObject()) != null){
                     arguments.add(object);
                 }
-                log.info("Command received: {}.{}({})", serviceName, methodName, arguments);
+
+                String command = String.format("%s.%s(%s)", serviceName, methodName, arguments);
+                log.info("Command received: {}", command);
 
                 try (OutputStream outputStream = socket.getOutputStream()) {
                     try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)){
 
                         objectOutputStream.writeObject(number);
-                        Object result = MethodUtils.invokeExactMethod(
-                                services.get(serviceName), methodName, arguments.toArray()
-                        );
-                        log.info("Result: {}", result);
-                        objectOutputStream.writeObject(result);
+                        try {
+                            Object result = MethodUtils.invokeExactMethod(
+                                    services.get(serviceName), methodName, arguments.toArray()
+                            );
+                            log.info("Result {} for command {}", result, command);
+                            objectOutputStream.writeObject(result);
+                        } catch (Exception e){
+                            String message = String.format("Exception for command %s: ", command);
+                            log.error("Exception: ", e);
+                            e.setStackTrace(new StackTraceElement[]{});
+                            objectOutputStream.writeObject(e);
+                        }
 
                         objectOutputStream.flush();
-                    } catch (NoSuchMethodException e) {
-                        log.error(e);
-                    } catch (IllegalAccessException e) {
-                        log.error(e);
-                    } catch (InvocationTargetException e) {
-                        log.error(e);
                     }
                 } catch (IOException e) {
-                    log.error(e);
+                    log.error("Exception: ", e);
                 }
             } catch (ClassNotFoundException e) {
-                log.error(e);
+                log.error("Exception: ", e);
             }
         } catch (IOException e) {
-            log.error(e);
+            log.error("Exception: ", e);
         }
 
         try {
             socket.close();
         } catch (IOException e) {
-            log.error(e);
+            log.error("Exception: ", e);
         }
     }
 }
