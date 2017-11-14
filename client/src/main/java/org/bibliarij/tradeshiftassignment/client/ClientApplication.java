@@ -17,10 +17,7 @@ public class ClientApplication {
 
     public static void main(String[] args) {
 
-        String serviceName = "IntegerService";
-        String methodName = "add";
-
-        sendRequest(serviceName, methodName, 1, 2);
+        new Thread(() -> sendRequest("IntegerService", "add", 1, 2)).start();
     }
 
     private static void sendRequest(String serviceName, String methodName, Object... arguments) {
@@ -44,8 +41,9 @@ public class ClientApplication {
 
                     try (InputStream inputStream = socket.getInputStream()){
                         try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)){
-                            Object object = objectInputStream.readObject();
-                            log.info("Result: {}", object);
+                            Integer number = (Integer) objectInputStream.readObject();
+                            Object result = objectInputStream.readObject();
+                            log.info("Result: {}", result);
                         } catch (ClassNotFoundException e) {
                             log.error(e);
                         }

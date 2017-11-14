@@ -1,13 +1,14 @@
 package org.bibliarij.tradeshiftassignment.server;
 
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Vladimir Nizamutdinov (astartes91@gmail.com)
@@ -15,8 +16,30 @@ import java.util.List;
 public class ServerApplication {
 
     private static final Logger log = LogManager.getLogger(ServerApplication.class);
+    private static Map<String, Object> services = new HashMap<>();
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+
+        new ServerApplication().startServer();
+    }
+
+    private void startServer() throws IOException {
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("server.properties");
+        Properties properties = new Properties();
+        properties.load(inputStream);
+
+        properties.forEach((o, o2) -> {
+            try {
+                services.put((String) o, Class.forName((String) o2).newInstance());
+            } catch (ClassNotFoundException e) {
+                log.error(e);
+            } catch (IllegalAccessException e) {
+                log.error(e);
+            } catch (InstantiationException e) {
+                log.error(e);
+            }
+        });
+
         int port = 8080;
         try (ServerSocket serverSocket = new ServerSocket(port)){
             log.info("Server started on port {}", port);
@@ -50,8 +73,21 @@ public class ServerApplication {
 
                 try (OutputStream outputStream = socket.getOutputStream()) {
                     try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)){
+
                         objectOutputStream.writeObject(number);
+                        Object result = MethodUtils.invokeExactMethod(
+                                services.get(serviceName), methodName, arguments.toArray()
+                        );
+                        log.info("Result: {}", result);
+                        objectOutputStream.writeObject(result);
+
                         objectOutputStream.flush();
+                    } catch (NoSuchMethodException e) {
+                        log.error(e);
+                    } catch (IllegalAccessException e) {
+                        log.error(e);
+                    } catch (InvocationTargetException e) {
+                        log.error(e);
                     }
                 } catch (IOException e) {
                     log.error(e);
