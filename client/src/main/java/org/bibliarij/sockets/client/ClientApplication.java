@@ -1,4 +1,4 @@
-package org.bibliarij.tradeshiftassignment.client;
+package org.bibliarij.sockets.client;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

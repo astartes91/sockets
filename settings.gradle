@@ -1,4 +1,4 @@
-rootProject.name = 'tradeshiftassignment'
+rootProject.name = 'sockets'
 include 'server'
 include 'client'
 

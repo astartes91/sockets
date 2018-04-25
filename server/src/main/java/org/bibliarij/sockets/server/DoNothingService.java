@@ -1,4 +1,4 @@
-package org.bibliarij.tradeshiftassignment.server;
+package org.bibliarij.sockets.server;
 
 /**
  * @author Vladimir Nizamutdinov

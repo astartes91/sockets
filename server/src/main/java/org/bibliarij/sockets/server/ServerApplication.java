@@ -1,4 +1,4 @@
-package org.bibliarij.tradeshiftassignment.server;
+package org.bibliarij.sockets.server;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.logging.log4j.LogManager;
